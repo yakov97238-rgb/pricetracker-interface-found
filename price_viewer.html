@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>השוואת סל קניות / Сравнение корзины</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;600;700&family=Noto+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--surf:#161b22;--surf2:#21262d;--brd:#30363d;
+  --txt:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--grn:#3fb950;
+  --red:#ff7b72;--warn:#e3b341;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans Hebrew',sans-serif;min-height:100vh;direction:rtl;}
+
+/* ── Header ── */
+header{background:var(--surf);border-bottom:1px solid var(--brd);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+.logo{font-family:'Space Mono',monospace;font-size:.85rem;color:var(--acc);}
+.logo b{color:var(--grn);}
+
+/* ── Sections ── */
+.section{padding:16px 20px;border-bottom:1px solid var(--brd);}
+h2{font-size:.95rem;font-weight:600;margin-bottom:12px;color:var(--txt);}
+h2 small{font-weight:400;color:var(--dim);font-size:.78rem;margin-right:6px;}
+
+/* ── Chain toggles ── */
+.chains-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.chain-btn{padding:4px 11px;border-radius:8px;border:2px solid var(--brd);background:var(--surf2);color:var(--dim);font-size:.78rem;cursor:pointer;transition:all .15s;font-family:inherit;user-select:none;line-height:1.5;}
+.chain-btn.on{font-weight:700;border-color:var(--acc);color:var(--acc);background:rgba(88,166,255,.08);}
+.chain-btn:hover:not(.on){border-color:#555;color:var(--txt);}
+
+/* ── Search ── */
+.search-wrap{position:relative;max-width:520px;}
+#q{width:100%;padding:9px 14px;background:var(--surf2);border:1px solid var(--brd);border-radius:8px;color:var(--txt);font-size:.95rem;font-family:inherit;outline:none;transition:border-color .15s;}
+#q:focus{border-color:var(--acc);}
+#q::placeholder{color:var(--dim);}
+.suggestions{position:absolute;top:100%;right:0;left:0;background:var(--surf);border:1px solid var(--brd);border-top:none;border-radius:0 0 10px 10px;z-index:200;max-height:300px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.sug-item{padding:9px 14px;cursor:pointer;font-size:.87rem;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:8px;transition:background .1s;}
+.sug-item:last-child{border-bottom:none;}
+.sug-item:hover,.sug-item.focused{background:var(--surf2);}
+.sug-name{font-weight:500;line-height:1.35;flex:1;}
+.sug-meta{font-size:.7rem;color:var(--dim);white-space:nowrap;flex-shrink:0;}
+.sug-empty{padding:10px 14px;font-size:.85rem;color:var(--dim);}
+
+/* ── Basket list ── */
+.basket-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.basket-item{background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:10px;}
+.basket-item-info{flex:1;min-width:0;}
+.basket-item-name{font-size:.87rem;font-weight:500;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.basket-item-meta{font-size:.7rem;color:var(--dim);margin-top:2px;}
+.qty-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.qty-btn{width:26px;height:26px;border:1px solid var(--brd);border-radius:6px;background:var(--surf2);color:var(--txt);font-size:1rem;line-height:1;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.qty-btn:hover{border-color:var(--acc);color:var(--acc);}
+.qty-val{font-family:'Space Mono',monospace;font-size:.85rem;min-width:24px;text-align:center;font-weight:600;}
+.btn-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:.9rem;padding:4px;flex-shrink:0;transition:color .15s;}
+.btn-remove:hover{color:var(--red);}
+.empty-msg{color:var(--dim);font-size:.87rem;padding:10px 0;}
+
+/* ── Results ── */
+.results{padding:16px 20px;}
+
+/* ── Best-network hero block ── */
+.best-hero{background:rgba(63,185,80,.07);border:1px solid var(--grn);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+.bh-label{font-size:.72rem;color:var(--grn);font-weight:600;letter-spacing:.04em;margin-bottom:6px;}
+.bh-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.bh-name{font-size:1.3rem;font-weight:700;color:var(--txt);}
+.bh-total{font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--grn);}
+.bh-saving{font-size:.82rem;color:var(--warn);margin-top:5px;}
+
+/* ── Summary strip ── */
+.summary-strip{background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px 16px;}
+.ss-item{}
+.ss-label{font-size:.68rem;color:var(--dim);margin-bottom:2px;}
+.ss-val{font-size:.88rem;font-weight:600;}
+.ss-val.accent{color:var(--warn);}
+
+/* ── Ranking list ── */
+.rank-list{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.rank-row{display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--brd);border-radius:9px;padding:10px 14px;transition:border-color .15s;}
+.rank-row.rank-best{border-color:var(--grn);background:rgba(63,185,80,.04);}
+.rank-row.rank-nodata{opacity:.45;}
+.rank-num{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--dim);min-width:24px;}
+.rank-name{flex:1;font-weight:600;font-size:.9rem;}
+.rank-total{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;}
+.rank-total.best{color:var(--grn);}
+.rank-delta{font-size:.78rem;color:var(--dim);min-width:60px;text-align:left;}
+.rank-delta.pos{color:var(--warn);}
+.rank-missing{font-size:.68rem;color:var(--dim);min-width:50px;text-align:left;}
+
+/* ── Diff table ── */
+.diff-wrap{margin-top:4px;}
+.diff-head{font-size:.85rem;font-weight:600;margin-bottom:4px;}
+.diff-sub{font-size:.72rem;color:var(--dim);margin-bottom:10px;}
+.diff-table{width:100%;border-collapse:collapse;font-size:.84rem;}
+.diff-table th{text-align:right;padding:6px 10px;font-size:.7rem;color:var(--dim);font-weight:400;border-bottom:1px solid var(--brd);}
+.diff-table td{padding:7px 10px;border-bottom:1px solid var(--brd);}
+.diff-table tr:last-child td{border-bottom:none;}
+.diff-mono{font-family:'Space Mono',monospace;}
+.diff-green{color:var(--grn);font-weight:600;}
+.diff-red{color:var(--red);}
+.diff-zero{color:var(--dim);}
+.diff-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.placeholder{color:var(--dim);font-size:.87rem;padding:16px 0;}
+
+
+/* ── Этап 1: top best-offer panel ── */
+.top-offer{background:linear-gradient(135deg,rgba(63,185,80,.10) 0%,rgba(63,185,80,.04) 100%);border:1.5px solid var(--grn);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+.to-label{font-size:.68rem;font-weight:700;color:var(--grn);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;}
+.to-main{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px;}
+.to-name{font-size:1.4rem;font-weight:700;}
+.to-price{font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--grn);}
+.to-savings{display:flex;flex-wrap:wrap;gap:8px;}
+.to-pill{font-size:.78rem;padding:3px 10px;border-radius:20px;background:rgba(227,179,65,.12);border:1px solid rgba(227,179,65,.3);color:var(--warn);}
+
+/* ── Этап 3: coverage toggle ── */
+.coverage-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.toggle-label{font-size:.82rem;color:var(--dim);cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;}
+.toggle-cb{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;}
+.coverage-note{font-size:.72rem;color:var(--dim);margin-top:4px;}
+
+/* ── Этап 4: price change badge ── */
+.price-change{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;margin-top:2px;}
+.pc-old{color:var(--dim);text-decoration:line-through;font-family:'Space Mono',monospace;}
+.pc-arrow{color:var(--dim);}
+.pc-pct{font-size:.68rem;padding:1px 5px;border-radius:4px;font-weight:600;}
+.pc-up{background:rgba(255,123,114,.15);color:var(--red);}
+.pc-down{background:rgba(63,185,80,.15);color:var(--grn);}
+
+/* ── Verdict block ── */
+.verdict{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;margin-top:4px;}
+.vrd-icon{font-size:1.1rem;flex-shrink:0;width:28px;text-align:center;}
+.vrd-text{flex:1;}
+.vrd-main{font-size:.9rem;font-weight:700;margin-bottom:2px;}
+.vrd-sub{font-size:.75rem;opacity:.75;}
+.vrd-neutral{background:rgba(139,148,158,.10);border:1px solid rgba(139,148,158,.25);}
+.vrd-neutral .vrd-main{color:var(--dim);}
+.vrd-small{background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.25);}
+.vrd-small .vrd-main{color:var(--warn);}
+.vrd-good{background:rgba(63,185,80,.10);border:1px solid rgba(63,185,80,.3);}
+.vrd-good .vrd-main{color:var(--grn);}
+.vrd-strong{background:rgba(63,185,80,.15);border:1px solid var(--grn);}
+.vrd-strong .vrd-main{color:var(--grn);font-size:1rem;}
+
+/* Keyboard hint */
+.kb-hint{font-size:.7rem;color:var(--dim);margin-top:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🛒 <b>price</b>tracker</span>
+  <span style="font-size:.78rem;color:var(--dim)">04.06.2026 16:40</span>
+</header>
+
+<!-- Step 1: Networks -->
+<div class="section" id="sec-chains">
+  <h2>1. בחר רשתות <small>· Выберите сети</small></h2>
+  <div class="chains-grid" id="chains-grid"></div>
+  <div class="coverage-row">
+    <label class="toggle-label">
+      <input type="checkbox" class="toggle-cb" id="full-cover-toggle">
+      הצג רק רשתות עם כיסוי מלא של הסל · Только сети с полным покрытием корзины
+    </label>
+  </div>
+  <div class="coverage-note" id="coverage-note" style="display:none"></div>
+</div>
+
+<!-- Step 2: Search & basket -->
+<div class="section">
+  <h2>2. הוסף מוצרים לסל <small>· Добавьте товары</small></h2>
+  <div class="search-wrap">
+    <input id="q" type="text" placeholder="חיפוש מוצר... / Поиск товара..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="suggestions" id="suggestions" style="display:none"></div>
+  </div>
+  <p class="kb-hint">↑↓ לניווט · Enter להוספה · Esc לסגירה</p>
+  <div class="basket-list" id="basket-list">
+    <div class="empty-msg" id="empty-msg">הסל ריק · Корзина пуста</div>
+  </div>
+</div>
+
+<!-- Top best-offer panel (Этап 1) -->
+<div id="top-offer-wrap"></div>
+<!-- Step 3+4+5: Results -->
+<div class="results" id="results"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA (injected by make_viewer.py)
+// ═══════════════════════════════════════════════════════════
+</script>
+<script src="data.js"></script>
+<script>
+const ALL_CHAINS = [...new Set((typeof CATALOG !== 'undefined' ? CATALOG : []).flatMap(i => Object.keys(i.ch || {})))].sort();
+
+// STATE
+let basket = [];
+let selectedChains = new Set(ALL_CHAINS.slice(0, 6));
+let activeCategory = "";
+let activeBrand = "";
+
+// Динамические списки фильтров
+let categories = ["Все"];
+let brands = [];
+
+// Карта популярных категорий на иврите с понятным переводом
+const CATEGORY_MAP = [
+    { name: "Молоко и сыры / חלב", keywords: ["חלב", "גבינ", "קוטג", "יוגורט", "חמאה", "שמנת"] },
+    { name: "Хлеб и выпечка / לחם", keywords: ["לחם", "פיתו", "לחמני", "עוגה", "עוגיו", "פתית"] },
+    { name: "Напитки и соки / שתייה", keywords: ["מים", "מיץ", "קולה", "משקה", "סודה", "בירה", "יין"] },
+    { name: "Бакалея и крупы / פסטה", keywords: ["אורז", "פסטה", "פתיתים", "קמח", "סוכר", "מלח", "שמן"] },
+    { name: "Кофе и чай / קפה", keywords: ["קפה", "תה", "נסקפה", "שוקולית"] },
+    { name: "Мясо и рыба / בשר", keywords: ["בשר", "עוף", "נקניק", "דג", "טונה", "נקניקיות"] },
+    { name: "Сладости и снэки / חטיפים", keywords: ["שוקולד", "חטיף", "במבה", "תפוצ'יפס", "סוכריות", "מסטיק"] },
+    { name: "Овощи и зелень / ירקות", keywords: ["עגבני", "מלפפון", "בצל", "תפוח", "גזר", "לקט"] },
+    { name: "Соусы и консервы / שימורים", keywords: ["רסק", "קטשופ", "מיונז", "רוטב", "זיתים", "תירס"] },
+    { name: "Косметика и уход / קוסמטיקה", keywords: ["שמפו", "סבון", "משחת", "דאודורנט", "קרם"] },
+    { name: "Бытовая химия / ניקוי", keywords: ["אבקת", "מרכך", "ג'ל", "ניקוי", "סמרטוט", "אקונומיקה"] },
+    { name: "Для детей / תינוקות", keywords: ["מטרנה", "סימילאק", "טיטול", "חיתול", "מגבונים"] }
+];
+
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. Автоматически определяем, какие категории из карты реально присутствуют в CATALOG
+    const presentCategories = new Set();
+    CATALOG.forEach(item => {
+        const nameLower = item.n.toLowerCase();
+        CATEGORY_MAP.forEach(cat => {
+            if (cat.keywords.some(kw => nameLower.includes(kw))) {
+                presentCategories.add(cat.name);
+            }
+        });
+    });
+    categories = ["Все", ...CATEGORY_MAP.map(c => c.name).filter(name => presentCategories.has(name))];
+
+    // 2. Автоматически собираем ТОП-15 популярных брендов из CATALOG
+    const brandCounts = {};
+    for (const item of CATALOG) {
+        const firstWord = item.n.trim().split(/\s+/)[0];
+        if (firstWord && firstWord.length > 2) {
+            brandCounts[firstWord] = (brandCounts[firstWord] || 0) + 1;
+        }
+    }
+    const topBrands = Object.entries(brandCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 40)
+        .map(([name]) => name);
+    brands = ["Все", ...topBrands];
+
+    buildChainGrid();
+    buildFilterPanels();
+    renderCatalogGrid("");
+    renderBasket();
+    renderResults();
+    
+    const searchInput = document.getElementById('q');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (e.target.value.trim()) {
+                activeCategory = "";
+                activeBrand = "";
+                updateFilterButtonsHighlight();
+            }
+            renderCatalogGrid(e.target.value.trim());
+        });
+    }
+});
+
+function buildChainGrid() {
+    const grid = document.getElementById('chains-grid');
+    if (!grid) return;
+    grid.innerHTML = "";
+    ALL_CHAINS.forEach(ch => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chain-btn' + (selectedChains.has(ch) ? ' on' : '');
+        btn.textContent = ch;
+        btn.onclick = () => {
+            if (selectedChains.has(ch)) {
+                if (selectedChains.size > 1) selectedChains.delete(ch);
+            } else {
+                selectedChains.add(ch);
+            }
+            btn.className = 'chain-btn' + (selectedChains.has(ch) ? ' on' : '');
+            renderBasket();
+            renderResults();
+        };
+        grid.appendChild(btn);
+    });
+}
+
+function buildFilterPanels() {
+    let filterContainer = document.getElementById('filter-container');
+    if (!filterContainer) {
+        const searchWrap = document.querySelector('.search-wrap');
+        filterContainer = document.createElement('div');
+        filterContainer.id = 'filter-container';
+        filterContainer.style.cssText = "margin: 15px 0; display: flex; flex-direction: column; gap: 10px;";
+        searchWrap.after(filterContainer);
+    }
+
+    const catHtml = `<div style="color: #aaa; font-size: 12px; font-weight: bold;">Категории товаров:</div>
+        <div id="cat-crumbs" style="display: flex; flex-wrap: wrap; gap: 6px; overflow-x: unset; white-space: normal; padding-bottom: 5px; scrollbar-width: thin;">` + 
+        categories.map(c => `<button type="button" class="filter-badge" data-cat="${c}" style="background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 6px 14px; border-radius: 15px; cursor: pointer; flex-shrink: 0; white-space: nowrap; font-size: 12px; transition: 0.2s;">${c}</button>`).join('') + 
+        `</div>`;
+
+    const brandHtml = `<div style="color: #aaa; font-size: 12px; font-weight: bold; margin-top: 5px;">Популярные бренды:</div>
+        <div id="brand-crumbs" style="display: flex; flex-wrap: wrap; gap: 6px; overflow-x: unset; white-space: normal; padding-bottom: 5px; scrollbar-width: thin;">` + 
+        brands.map(b => `<button type="button" class="filter-badge" data-brand="${b}" style="background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 6px 14px; border-radius: 15px; cursor: pointer; flex-shrink: 0; white-space: nowrap; font-size: 12px; transition: 0.2s;">${b}</button>`).join('') + 
+        `</div>`;
+
+    filterContainer.innerHTML = catHtml + brandHtml;
+
+    document.getElementById('cat-crumbs').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const cat = btn.getAttribute('data-cat');
+        activeCategory = (cat === "Все") ? "" : cat;
+        document.getElementById('q').value = "";
+        updateFilterButtonsHighlight();
+        renderCatalogGrid("");
+    });
+
+    document.getElementById('brand-crumbs').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const b = btn.getAttribute('data-brand');
+        activeBrand = (b === "Все") ? "" : b;
+        document.getElementById('q').value = "";
+        updateFilterButtonsHighlight();
+        renderCatalogGrid("");
+    });
+
+    updateFilterButtonsHighlight();
+}
+
+function updateFilterButtonsHighlight() {
+    document.querySelectorAll('#cat-crumbs button').forEach(b => {
+        const c = b.getAttribute('data-cat');
+        if ((c === "Все" && !activeCategory) || c === activeCategory) {
+            b.style.background = "#0e639c"; b.style.borderColor = "#007acc";
+        } else {
+            b.style.background = "#2d2d2d"; b.style.borderColor = "#444";
+        }
+    });
+    document.querySelectorAll('#brand-crumbs button').forEach(b => {
+        const br = b.getAttribute('data-brand');
+        if ((br === "Все" && !activeBrand) || br === activeBrand) {
+            b.style.background = "#238636"; b.style.borderColor = "#2ea44f";
+        } else {
+            b.style.background = "#2d2d2d"; b.style.borderColor = "#444";
+        }
+    });
+}
+
+function renderCatalogGrid(query) {
+    let catalogWrap = document.getElementById('catalog-wrap');
+    if (!catalogWrap) {
+        const filterContainer = document.getElementById('filter-container');
+        catalogWrap = document.createElement('div');
+        catalogWrap.id = 'catalog-wrap';
+        catalogWrap.style.cssText = "display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:15px; margin: 15px 0; max-height:400px; overflow-y:auto; padding:10px; background:#1e1e1e; border-radius:8px;";
+        filterContainer.after(catalogWrap);
+    }
+
+    let filtered = CATALOG;
+
+    // 1. Поиск по тексту/штрихкоду
+    if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(item => item.n.toLowerCase().includes(q) || item.c.includes(q));
+    }
+
+    // 2. Умная фильтрация по выбранной категории
+    if (activeCategory) {
+        const currentCatObj = CATEGORY_MAP.find(c => c.name === activeCategory);
+        if (currentCatObj) {
+            filtered = filtered.filter(item => {
+                const nameLower = item.n.toLowerCase();
+                return currentCatObj.keywords.some(kw => nameLower.includes(kw));
+            });
+        }
+    }
+
+    // 3. Фильтр по бренду
+    if (activeBrand) {
+        filtered = filtered.filter(item => item.m === activeBrand);
+    }
+
+    const displayList = filtered.slice(0, 60);
+
+    if (displayList.length === 0) {
+        catalogWrap.innerHTML = "<div style='color:#aaa; padding:10px;'>Ничего не найдено</div>";
+        return;
+    }
+
+    catalogWrap.innerHTML = displayList.map(item => `
+        <div style="background:#252526; border:1px solid #3c3c3c; padding:12px; border-radius:6px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div style="font-size:13px; font-weight:bold; color:#fff; direction:rtl; text-align:right;">${item.n}</div>
+            <div style="font-size:11px; color:#888; direction:rtl; text-align:right;">${item.m || 'Без бренда'} | ${item.s}</div>
+            <button type="button" onclick="addToBasket('${item.c}')" style="background:#0e639c; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-size:12px; width:100%;">
+                + Добавить
+            </button>
+        </div>
+    `).join('');
+}
+
+function addToBasket(barcode) {
+    const item = CATALOG.find(b => b.c === barcode);
+    if (!item) return;
+    const existing = basket.find(b => b.c === barcode);
+    if (existing) { existing.qty++; } else { basket.push({ c: barcode, qty: 1 }); }
+    renderBasket();
+    renderResults();
+}
+
+function changeQty(barcode, delta) {
+    const item = basket.find(b => b.c === barcode);
+    if (!item) return;
+    item.qty += delta;
+    if (item.qty <= 0) { basket = basket.filter(b => b.c !== barcode); }
+    renderBasket();
+    renderResults();
+}
+
+function renderBasket() {
+    const listEl = document.getElementById('basket-list');
+    const emptyMsg = document.getElementById('empty-msg');
+    if (!listEl) return;
+
+    if (basket.length === 0) {
+        listEl.innerHTML = "";
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+    }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    listEl.innerHTML = basket.map(bItem => {
+        const item = CATALOG.find(c => c.c === bItem.c);
+        if (!item) return '';
+
+        let rowsHtml = "";
+        selectedChains.forEach(ch => {
+            const price = item.ch[ch];
+            const priceText = price ? `${price.toFixed(2)} ₪` : '—';
+            const totalText = price ? `${(price * bItem.qty).toFixed(2)} ₪` : '—';
+            rowsHtml += `<tr><td style="padding:4px 0;">${ch}</td><td>${priceText}</td><td>${totalText}</td></tr>`;
+        });
+
+        return `
+            <div style="background:#2d2d2d; border-radius:6px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:start; gap:20px; border:1px solid #444;">
+                <div style="flex:1;">
+                    <strong style="color:#fff; font-size:16px; direction:rtl; display:block; text-align:right;">${item.n}</strong>
+                    <div style="color:#aaa; font-size:12px; margin-bottom:8px; direction:rtl; text-align:right;">${item.m} ${item.s}</div>
+                    <table style="width:100%; font-size:12px; border-collapse:collapse; color:#ccc; text-align:left;">
+                        <thead><tr style="border-bottom:1px solid #555;"><th>Сеть</th><th>Цена</th><th>Общий</th></tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; background:#1e1e1e; padding:5px 10px; border-radius:4px; align-self:center;">
+                    <button type="button" onclick="changeQty('${bItem.c}', -1)" style="background:#444; color:#fff; border:none; width:24px; height:24px; cursor:pointer; font-weight:bold;">-</button>
+                    <span style="color:#fff; font-weight:bold; min-width:20px; text-align:center;">${bItem.qty}</span>
+                    <button type="button" onclick="changeQty('${bItem.c}', 1)" style="background:#444; color:#fff; border:none; width:24px; height:24px; cursor:pointer; font-weight:bold;">+</button>
+                    <button type="button" onclick="changeQty('${bItem.c}', -${bItem.qty})" style="background:#d9534f; color:#fff; border:none; padding:4px 8px; margin-left:10px; cursor:pointer; font-size:11px; border-radius:3px;">Удалить</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderResults() {
+    const resEl = document.getElementById('results');
+    if (!resEl) return;
+
+    if (basket.length === 0) {
+        resEl.innerHTML = '<div style="color:#aaa; padding:10px;">Добавьте товары, чтобы сравнить стоимость.</div>';
+        return;
+    }
+
+    let totals = [];
+    selectedChains.forEach(ch => {
+        let sum = 0;
+        let hasAll = true;
+        let found = 0;
+        for (let bItem of basket) {
+            const item = CATALOG.find(c => c.c === bItem.c);
+            if (item && item.ch[ch]) { sum += item.ch[ch] * bItem.qty; found += bItem.qty; } else { hasAll = false; }
+        }
+        totals.push({ chain: ch, total: sum, complete: hasAll, found });
+    });
+
+    totals.sort((a, b) => (a.total || Infinity) - (b.total || Infinity));
+
+    let html = '';
+
+    // ═══════════════════════════════════════════════════════════
+    // БЛОК 1: Рекомендация (Лучшая сеть)
+    // ═══════════════════════════════════════════════════════════
+    if (totals.length > 0) {
+        const best = totals[0];
+        const second = totals[1];
+        let recommendHtml = `<div class="best-hero">`;
+        recommendHtml += `<div class="bh-label">🏆 РЕКОМЕНДАЦИЯ</div>`;
+        recommendHtml += `<div class="bh-row">`;
+        recommendHtml += `<span class="bh-name">${best.chain}</span>`;
+        recommendHtml += `<span class="bh-total">${best.total.toFixed(2)} ₪</span>`;
+        recommendHtml += `</div>`;
+        if (second) {
+            const diff = second.total - best.total;
+            if (diff < 5 && diff > 0) {
+                recommendHtml += `<div class="bh-saving">разница минимальна</div>`;
+            } else if (diff >= 20) {
+                recommendHtml += `<div class="bh-saving">стоит рассмотреть альтернативы</div>`;
+            }
+        }
+        recommendHtml += `</div>`;
+        html += recommendHtml;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // БЛОК 2: Эталонные цены (Медиана)
+    // ═══════════════════════════════════════════════════════════
+    const bestChain = totals.length > 0 ? totals[0].chain : null;
+    if (bestChain) {
+        html += `<div class="diff-wrap" style="margin-top:14px;">`;
+        html += `<div class="diff-head">📊 Эталонные цены (Медиана по всем сетям)</div>`;
+        html += `<div class="diff-sub">Сравнение цены в выбранной сети с медианой. Красный = переплата >20%</div>`;
+        html += `<table class="diff-table">`;
+        html += `<tr><th>Товар</th><th>Цена в сети</th><th>Медиана</th><th>Статус</th></tr>`;
+        
+        basket.forEach(bItem => {
+            const item = CATALOG.find(c => c.c === bItem.c);
+            if (!item) return;
+
+            // Вычисляем медиану по всем сетям
+            const prices = Object.values(item.ch || {}).filter(p => p !== undefined).sort((a, b) => a - b);
+            let median = 0;
+            if (prices.length > 0) {
+                const mid = Math.floor(prices.length / 2);
+                median = prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+            }
+
+            const priceInBest = item.ch[bestChain];
+            const status = !priceInBest ? 'нет в сети' : 
+                          (priceInBest > median * 1.20 ? '⚠ переплата' : '✓ норма');
+            const statusColor = !priceInBest ? 'var(--dim)' : 
+                               (priceInBest > median * 1.20 ? 'var(--red)' : 'var(--grn)');
+
+            const priceBestTotal = priceInBest ? (priceInBest * bItem.qty).toFixed(2) : '—';
+            const medianTotal = median > 0 ? (median * bItem.qty).toFixed(2) : '—';
+
+            html += `<tr style="color:${statusColor};">`;
+            html += `<td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;">${item.n}</td>`;
+            html += `<td class="diff-mono">${priceBestTotal} ₪</td>`;
+            html += `<td class="diff-mono">${medianTotal} ₪</td>`;
+            html += `<td><strong>${status}</strong></td>`;
+            html += `</tr>`;
+        });
+        
+        html += `</table>`;
+        html += `</div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Краткий обзор (исходная таблица)
+    // ═══════════════════════════════════════════════════════════
+    html += `<h3 style="margin-bottom:10px; margin-top:14px;">Сводный итог корзины:</h3><table style="width:100%; border-collapse:collapse; margin-top:10px; color:#fff;">`;
+    html += `<tr style="border-bottom:2px solid #555; text-align:left;"><th>Сеть</th><th>Итоговая сумма корзины</th><th>Статус покрытия</th></tr>`;
+    
+    totals.forEach(t => {
+        const sumText = t.total > 0 ? `${t.total.toFixed(2)} ₪` : '—';
+        const statusText = t.complete ? '<span style="color:#5cb85c;">Полное покрытие</span>' : '<span style="color:#f0ad4e;">Частичное</span>';
+        html += `<tr style="border-bottom:1px solid #3c3c3c; height:35px;"><td><strong>${t.chain}</strong></td><td>${sumText}</td><td>${statusText}</td></tr>`;
+    });
+    html += `</table>`;
+
+    // ═══════════════════════════════════════════════════════════
+    // БЛОК 3: Рейтинг сетей (исправленный)
+    // ═══════════════════════════════════════════════════════════
+    if (totals.length > 0) {
+        const best = totals[0];
+        html += `<div style="margin-top:14px;">`;
+        html += `<h3 style="margin-bottom:10px;">Рейтинг сетей:</h3>`;
+        html += `<div class="rank-list">`;
+        
+        totals.forEach((t, i) => {
+            if (t.found === 0) return; // Пропускаем сети без товаров
+            const delta = t.total - best.total;
+            const isBest = i === 0;
+            html += `<div class="rank-row ${isBest ? 'rank-best' : ''}">`;
+            html += `<span class="rank-num">#${i + 1}</span>`;
+            html += `<span class="rank-name">${t.chain}</span>`;
+            html += `<span class="rank-total ${isBest ? 'best' : ''}">${t.total.toFixed(2)} ₪</span>`;
+            if (delta > 0.005) {
+                html += `<span class="rank-delta pos">+${delta.toFixed(2)} ₪</span>`;
+            } else {
+                html += `<span class="rank-delta">✓</span>`;
+            }
+            html += `</div>`;
+        });
+
+        // Добавляем сети без товаров в конце серым
+        totals.forEach(t => {
+            if (t.found > 0) return; // Только сети без товаров
+            html += `<div class="rank-row rank-nodata">`;
+            html += `<span class="rank-num">—</span>`;
+            html += `<span class="rank-name">${t.chain}</span>`;
+            html += `<span style="font-size:.75rem;color:var(--dim)">нет товаров</span>`;
+            html += `</div>`;
+        });
+
+        html += `</div>`;
+        html += `</div>`;
+    }
+
+    resEl.innerHTML = html;
+}
+</script>
+</body>
+</html>
